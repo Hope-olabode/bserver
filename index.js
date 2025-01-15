@@ -10,7 +10,10 @@ const profilePicRoute = require("./routes/profilePicRoute")
 const cookieParser = require("cookie-parser");
 
 
-
+const allowedOrigins = [
+  'http://localhost:5173', // Local development
+  'https://br-g3s4.vercel.app/', // Production frontend
+];
 
 
 dotenv.config();
@@ -20,9 +23,15 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:5173", // Replace with your frontend's URL
-  credentials: true,              // Allow credentials (cookies)
-}))
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies if needed
+}));
 
 // routes
 app.use("/api/products", productRoute)
