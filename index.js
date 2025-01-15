@@ -9,17 +9,18 @@ const authRoute = require("./routes/authRoute");
 const profilePicRoute = require("./routes/profilePicRoute");
 const cookieParser = require("cookie-parser");
 
+
+dotenv.config();
+
+const PORT = process.env.PORT || 3001;
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173", // Local development
   "https://br-nygy.vercel.app/", // Production frontend
 ];
 
-dotenv.config();
-
-const PORT = process.env.PORT || 3002;
-const app = express();
-app.use(express.json());
-app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // routes
