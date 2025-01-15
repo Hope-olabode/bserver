@@ -1,55 +1,44 @@
-const  express = require('express')
-const mongoose = require('mongoose')
-const cors = require('cors')
-const dotenv = require('dotenv')
-const UserModel = require("./model/User")
-const Product = require("./model/Product")
-const productRoute = require("./routes/productRoute")
-const authRoute = require("./routes/authRoute")
-const profilePicRoute = require("./routes/profilePicRoute")
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const UserModel = require("./model/User");
+const Product = require("./model/Product");
+const productRoute = require("./routes/productRoute");
+const authRoute = require("./routes/authRoute");
+const profilePicRoute = require("./routes/profilePicRoute");
 const cookieParser = require("cookie-parser");
 
-
 const allowedOrigins = [
-  'http://localhost:5173', // Local development
-  'https://br-nygy.vercel.app/', // Production frontend
+  "http://localhost:5173", // Local development
+  "https://br-nygy.vercel.app/", // Production frontend
 ];
-
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3002
-const app = express()
-app.use(express.json())
+const PORT = process.env.PORT || 3002;
+const app = express();
+app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true, // Allow cookies if needed
-}));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // routes
-app.use("/api/products", productRoute)
-app.use("/auth", authRoute)
-app.use("/api/profilePic", profilePicRoute)
+app.use("/api/products", productRoute);
+app.use("/auth", authRoute);
+app.use("/api/profilePic", profilePicRoute);
 
-
-mongoose.connect(process.env.MONGO_URL)
+mongoose
+  .connect(process.env.MONGO_URL)
   .then(() => console.log("connected to mongoDB"))
-  .catch(err => console.log("failed to conect to mongoDB", err))
+  .catch((err) => console.log("failed to conect to mongoDB", err));
 
 app.listen(PORT, () => {
-  console.log(`server is running on port ${process.env.PORT}`)
-})
+  console.log(`server is running on port ${process.env.PORT}`);
+});
 
-app.get("/giveme", async(req, res)=> {
-  res.send('you will show in postman')
-})
+app.get("/giveme", async (req, res) => {
+  res.send("you will show in postman");
+});
 
 /* app.post("/api/products", async (req, res) => {
   try {
