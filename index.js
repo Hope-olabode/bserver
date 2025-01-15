@@ -12,7 +12,7 @@ const cookieParser = require("cookie-parser");
 
 const allowedOrigins = [
   'http://localhost:5173', // Local development
-  'https://br-g3s4.vercel.app/', // Production frontend
+  'https://br-nygy.vercel.app/', // Production frontend
 ];
 
 
