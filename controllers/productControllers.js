@@ -5,14 +5,8 @@ const cookieParser = require("cookie-parser");
 const mongoose = require('mongoose');
 
 const getProducts = async (req, res) => {
-  const token = req.cookies.token; // Assumes the token is stored in a cookie named "token"
-
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized: No token provided" });
-  }
-
+  
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using your secret key
     const products = await Product.find({});
     res.status(200).json(products);
   } catch (error) {
