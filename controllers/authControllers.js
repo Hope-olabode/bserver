@@ -44,8 +44,8 @@ const signUp = async (req, res) => {
     // Set the new token
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Enable secure in production
-      sameSite: process.env.NODE_ENV === "production" ? "Lax" : "strict", // Adjust if necessary (e.g., 'Lax' for cross-site cookies)
+      secure: process.env.NODE_ENV === "production", // Cookies sent only over HTTPS in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -81,6 +81,8 @@ const logIn = async (req, res) => {
     // Set cookie with the token
     res.cookie("token", token, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Cookies sent only over HTTPS in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
