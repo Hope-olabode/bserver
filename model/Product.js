@@ -31,11 +31,6 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-
-    liked: {
-      type: Boolean,
-      default: false
-    }
   },
   {
     timestamps: true,

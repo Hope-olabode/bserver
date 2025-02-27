@@ -1,16 +1,18 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
+
 const UserModel = require("./model/User");
 const Product = require("./model/Product");
 const productRoute = require("./routes/productRoute");
 const authRoute = require("./routes/authRoute");
 const profilePicRoute = require("./routes/profilePicRoute");
+const cartRoute = require("./routes/cartRoute")
 const cookieParser = require("cookie-parser");
 
-
-dotenv.config();
+const transporter = require("./config/nodemailer");
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -27,6 +29,7 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use("/api/products", productRoute);
 app.use("/auth", authRoute);
 app.use("/api/profilePic", profilePicRoute);
+app.use("/cart", cartRoute);
 
 mongoose
   .connect(process.env.MONGO_URL)
@@ -40,6 +43,8 @@ app.listen(PORT, () => {
 app.get("/giveme", async (req, res) => {
   res.send("you will show in postman");
 });
+
+
 
 /* app.post("/api/products", async (req, res) => {
   try {

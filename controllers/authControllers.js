@@ -2,22 +2,26 @@ const UserModel = require("../model/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+const transporter = require("../config/nodemailer.js");
+const { Welcome_Email_Template, VERIFICATION_EMAIL_TEMPLATE, RESET_EMAIL_TEMPLATE } = require("../config/emailtemplate.js");
+const dotenv = require("dotenv");
 
-
+// Load environment variables in this file
+dotenv.config();
 
 const signUp = async (req, res) => {
   const { Email, Password, confirmPassword } = req.body;
 
   if (Password !== confirmPassword) {
-    return res.status(400).json({ message: 'Passwords do not match' });
+    return res.status(400).json({ message: "Passwords do not match" });
   }
 
   try {
     // Check if the user already exists
     const existingUser = await UserModel.findOne({ Email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already exists' });
+      return res.status(400).json({ error: "Email already exists" });
     }
 
     // Hash password and create user
@@ -31,35 +35,35 @@ const signUp = async (req, res) => {
 
     // Generate a new token
     const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
+      expiresIn: "7d",
     });
 
     // Clear any existing token
-    res.clearCookie('token');
+    res.clearCookie("token");
 
     // Set the new token
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Enable secure in production
+      secure: process.env.NODE_ENV === "production", // Enable secure in production
       sameSite: process.env.NODE_ENV === "production" ? "Lax" : "strict", // Adjust if necessary (e.g., 'Lax' for cross-site cookies)
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error('Signup Error:', error);
+    console.error("Signup Error:", error);
     return res
       .status(500)
-      .json({ message: 'An error occurred while registering' });
+      .json({ message: "An error occurred while registering" });
   }
 };
 
-
 const logIn = async (req, res) => {
   try {
-    const { Email, Password, } = req.body;
-    console.log(Email)
+    const { Email, Password } = req.body;
+    console.log(Email);
     const User = await UserModel.findOne({ Email });
+    console.log(User);
 
     if (!User) {
       return res.status(404).json({ message: "User not found" });
@@ -83,7 +87,9 @@ const logIn = async (req, res) => {
     res.status(200).json({ message: "Login successful" });
   } catch (error) {
     console.error("Login Error:", error.message);
-    res.status(500).json({ message: "An error occurred. Please try again later." });
+    res
+      .status(500)
+      .json({ message: "An error occurred. Please try again later." });
   }
 };
 
@@ -101,11 +107,13 @@ const isLogin = async (req, res) => {
     // console.log('Decoded Token:', decoded); // Log the decoded token
 
     if (decoded) {
-      const user = await UserModel.findById(decoded.id)/* .select('Full_Name').lean(); */
-      console.log('User:', user); // Log user details from the database
+      const user = await UserModel.findById(
+        decoded.id
+      ); /* .select('Full_Name').lean(); */
+      console.log("User:", user); // Log user details from the database
 
       if (user) {
-        return res.status(200).json({ loggedIn: true, user: user});
+        return res.status(200).json({ loggedIn: true, user: user });
       } else {
         /* console.log('User not found or Full_Name missing'); */
         return res.status(200).json({ loggedIn: false });
@@ -115,11 +123,10 @@ const isLogin = async (req, res) => {
     // console.error('JWT Verification Error:', err.message); // Log JWT errors
     return res.status(200).json({ loggedIn: false });
   }
-}
-
+};
 
 const additional = async (req, res) => {
-  console.log('Cookies:', req.cookies);
+  console.log("Cookies:", req.cookies);
   const token = req.cookies.token;
 
   if (!token) {
@@ -149,55 +156,212 @@ const additional = async (req, res) => {
   }
 };
 
-
-
-
 const isDetailsFilled = async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
     // console.log('Token missing');
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded Token:', decoded);
+    console.log("Decoded Token:", decoded);
 
     if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
       // console.log('Invalid ObjectId:', decoded.id);
-      return res.status(400).json({ message: 'Invalid User ID' });
+      return res.status(400).json({ message: "Invalid User ID" });
     }
 
     const user = await UserModel.findById(decoded.id)
-      .select('isDetailsFilled')
+      .select("isDetailsFilled")
       .lean();
 
     // console.log('User:', user);
 
     if (!user) {
-      console.log('User not found in the database');
-      return res.status(404).json({ message: 'User not found' });
+      console.log("User not found in the database");
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.status(200).json({ isDetailsFilled: user.isDetailsFilled });
   } catch (err) {
-    console.error('Error:', err.name, err.message);
+    console.error("Error:", err.name, err.message);
 
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({ message: "Invalid token" });
     }
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired' });
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired" });
     }
-    if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid user ID format' });
+    if (err.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID format" });
     }
 
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
+const google = async (req, res) => {
+  console.log(req.body);
+  const { Name, Email, Profile_Image } = req.body;
+  console.log(Email);
+  try {
+    const user = await UserModel.findOne({ Email });
+    console.log(user);
+    if (user) {
+      console.log(user._id);
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      console.log(1);
+      res.status(200).json({ message: "User Login successfully" });
+    } else {
+      const generatedPassword =
+        Math.round().toString(36).slice(-8) +
+        Math.round().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      const newuser = new UserModel({
+        Name,
+        Email,
+        Profile_Image,
+        Password: hashedPassword,
+      });
+      await newuser.save();
+
+      const token = jwt.sign({ id: newuser._id }, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Enable secure in production
+        sameSite: process.env.NODE_ENV === "production" ? "Lax" : "strict", // Adjust if necessary (e.g., 'Lax' for cross-site cookies)
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      res.status(200).json({ message: "User Login successfully" });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const emailCheck = async (req, res) => {
+  const { Email } = req.body;
+  if (!Email) {
+    return res.status(404).json({message: "Email required"});
+  }
+  console.log(Email)
+  try {
+    const user = await UserModel.findOne({ Email });
+    if (!user) {
+      return res.status(404).json({message: "User not found with this email" });
+    }
+    console.log(user)
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    user.resetOtp = otp;
+    user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000;
+
+   
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: user.Email,
+      subject: "Password Reset OTP",
+      html: RESET_EMAIL_TEMPLATE.replace("{verificationCode}", otp),
+      category: "Reset Email Verification",
+    };
+    await user.save();
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({message: "Reset OTP sent to your email" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const verifyResetOtp = async (req, res) => {
+  console.log(req.body)
+  const { Email, otp } = req.body;
+  if (!Email || !otp) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and OTP are required." });
+  }
+
+  try {
+    const user = await UserModel.findOne({ Email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    // Check if the OTP has expired
+    if (Date.now() > user.resetOtpExpireAt) {
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP has expired." });
+    }
+
+    // Check if the OTP is valid
+    if (user.resetOtp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP." });
+    }
+
+    // If OTP is verified successfully, optionally clear the OTP and expiration fields
+    user.resetOtp = undefined;
+    user.resetOtpExpireAt = undefined;
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ success: true, message: "OTP verified successfully." });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { Email, newPassword } = req.body;
+  console.log(req.body)
+  if (!Email || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Email and NewPassword are required' });
+  }
+  try {
+    const user = await UserModel.findOne({ Email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found in DB' });
+    }
+    
+    // If the OTP field still exists (i.e. not cleared), it means the OTP wasn't verified.
+    if (user.resetOtp) {
+      return res.status(400).json({ success: false, message: 'OTP has not been verified yet' });
+    }
+
+    // Optional: You might also check if the OTP expired field is still set (if your logic requires it)
+    if (user.resetOtpExpireAt && user.resetOtpExpireAt > Date.now()) {
+      return res.status(400).json({ success: false, message: 'OTP is still active. Verify OTP before resetting password.' });
+    }
+
+    // Proceed with resetting the password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.Password = hashedPassword;
+    
+    // Clear any OTP-related fields just to be safe
+    user.resetOtp = undefined;
+    user.resetOtpExpireAt = undefined;
+    
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Password has been reset successfully" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 module.exports = {
@@ -205,5 +369,9 @@ module.exports = {
   logIn,
   isLogin,
   additional,
-  isDetailsFilled
+  isDetailsFilled,
+  google,
+  emailCheck,
+  verifyResetOtp,
+  resetPassword
 };

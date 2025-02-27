@@ -14,9 +14,21 @@ const getProducts = async (req, res) => {
   }
 };
 
+const getProductsWithoutDiscription = async (req, res) => {
+  
+  try {
+    const products = await Product.find( {},{ discription: 0 } );
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(403).json({ message: "Forbidden: Invalid token" });
+  }
+};
+
 // Create a new product (Authenticated)
 const createProducts = async (req, res) => {
   const token = req.cookies.token; // Assumes the token is stored in a cookie named "token"
+
+  
   
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
@@ -34,7 +46,7 @@ const createProducts = async (req, res) => {
 
 const like = async (req, res) => {
   const token = req.cookies.token;
-  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  if (!token) return res.status(401).json({ message: "Unauthorized! you are not loged in" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -116,4 +128,5 @@ module.exports = {
   like,
   unlike,
   liked,
+  getProductsWithoutDiscription,
 }
