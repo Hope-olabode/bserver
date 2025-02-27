@@ -20,9 +20,9 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173", // Local development
-  "https://br-mu.vercel.app/",
+  "https://br-mu.vercel.app",
   "https://br-git-main-hopes-projects-04102cc1.vercel.app",
-  "https://br-5nw68loh9-hopes-projects-04102cc1.vercel.app/"// Production frontend
+  "https://br-5nw68loh9-hopes-projects-04102cc1.vercel.app"// Production frontend
 ];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
