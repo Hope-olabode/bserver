@@ -9,6 +9,7 @@ const Product = require("./model/Product");
 const productRoute = require("./routes/productRoute");
 const authRoute = require("./routes/authRoute");
 const profilePicRoute = require("./routes/profilePicRoute");
+const paymentRoute = require("./routes/paymentRoute");
 const cartRoute = require("./routes/cartRoute")
 const cookieParser = require("cookie-parser");
 
@@ -32,6 +33,7 @@ app.use("/api/products", productRoute);
 app.use("/auth", authRoute);
 app.use("/api/profilePic", profilePicRoute);
 app.use("/cart", cartRoute);
+app.use("/api", paymentRoute);
 
 mongoose
   .connect(process.env.MONGO_URL)

@@ -4,7 +4,11 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const transporter = require("../config/nodemailer.js");
-const { Welcome_Email_Template, VERIFICATION_EMAIL_TEMPLATE, RESET_EMAIL_TEMPLATE } = require("../config/emailtemplate.js");
+const {
+  Welcome_Email_Template,
+  VERIFICATION_EMAIL_TEMPLATE,
+  RESET_EMAIL_TEMPLATE,
+} = require("../config/emailtemplate.js");
 const dotenv = require("dotenv");
 
 // Load environment variables in this file
@@ -21,7 +25,7 @@ const signUp = async (req, res) => {
     // Check if the user already exists
     const existingUser = await UserModel.findOne({ Email });
     if (existingUser) {
-      return res.status(400).json({ error: "Email already exists" });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
     // Hash password and create user
@@ -49,7 +53,21 @@ const signUp = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    newUser.verifyOtp = otp;
+    newUser.verifyOtpExpiresAt = Date.now() + 15 * 60 * 1000;
+
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: newUser.Email,
+      subject: "Email Verify OTP",
+      html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", otp),
+      category: "Reset Email Verification",
+    };
+    await newUser.save();
+    await transporter.sendMail(mailOptions);
+    
+    return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error("Signup Error:", error);
     return res
@@ -256,20 +274,20 @@ const google = async (req, res) => {
 const emailCheck = async (req, res) => {
   const { Email } = req.body;
   if (!Email) {
-    return res.status(404).json({message: "Email required"});
+    return res.status(404).json({ message: "Email required" });
   }
-  console.log(Email)
+  console.log(Email);
   try {
     const user = await UserModel.findOne({ Email });
     if (!user) {
-      return res.status(404).json({message: "User not found with this email" });
+      return res
+        .status(404)
+        .json({ message: "User not found with this email" });
     }
-    console.log(user)
     const otp = String(Math.floor(1000 + Math.random() * 9000));
     user.resetOtp = otp;
     user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000;
 
-   
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
       to: user.Email,
@@ -279,14 +297,14 @@ const emailCheck = async (req, res) => {
     };
     await user.save();
     await transporter.sendMail(mailOptions);
-    res.status(200).json({message: "Reset OTP sent to your email" });
+    res.status(200).json({ message: "Reset OTP sent to your email" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const verifyResetOtp = async (req, res) => {
-  console.log(req.body)
+  console.log(req.body);
   const { Email, otp } = req.body;
   if (!Email || !otp) {
     return res
@@ -329,42 +347,99 @@ const verifyResetOtp = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   const { Email, newPassword } = req.body;
-  console.log(req.body)
+  console.log(req.body);
   if (!Email || !newPassword) {
-    return res.status(400).json({ success: false, message: 'Email and NewPassword are required' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and NewPassword are required" });
   }
   try {
     const user = await UserModel.findOne({ Email });
+    console.log(user)
     if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found in DB' });
+      return res
+        .status(400)
+        .json({ success: false, message: "User not found in DB" });
     }
-    
+
     // If the OTP field still exists (i.e. not cleared), it means the OTP wasn't verified.
     if (user.resetOtp) {
-      return res.status(400).json({ success: false, message: 'OTP has not been verified yet' });
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP has not been verified yet" });
     }
 
     // Optional: You might also check if the OTP expired field is still set (if your logic requires it)
     if (user.resetOtpExpireAt && user.resetOtpExpireAt > Date.now()) {
-      return res.status(400).json({ success: false, message: 'OTP is still active. Verify OTP before resetting password.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "OTP is still active. Verify OTP before resetting password.",
+        });
     }
 
     // Proceed with resetting the password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.Password = hashedPassword;
-    
+
     // Clear any OTP-related fields just to be safe
     user.resetOtp = undefined;
     user.resetOtpExpireAt = undefined;
-    
+
     await user.save();
 
-    return res.status(200).json({ success: true, message: "Password has been reset successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Password has been reset successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
+const verifyEmail = async (req, res) => {
+  const token = req.cookies.token;
+  const { otp } = req.body;
+  if (!otp)
+    return res
+      .status(400)
+      .json({ success: false, message: "OTP is required." });
+
+  if (!token)
+    return res
+      .status(401)
+      .json({ message: "Unauthorized! you are not loged in" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const user = await UserModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Check if the OTP has expired
+    if (Date.now() > user.verifyOtpExpiresAt) {
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP has expired." });
+    }
+
+    // Check if the OTP is valid
+    if (user.verifyOtp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP." });
+    }
+
+    user.verifyOtp = undefined;
+    user.verifyOtpExpiresAt = undefined;
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Email verified successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
   signUp,
@@ -375,5 +450,6 @@ module.exports = {
   google,
   emailCheck,
   verifyResetOtp,
-  resetPassword
+  resetPassword,
+  verifyEmail,
 };

@@ -1,18 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const Product = require("../model/User")
-const {signUp, logIn, isLogin, additional, isDetailsFilled, google,  emailCheck, verifyResetOtp, resetPassword } = require("../controllers/authControllers");
+const Product = require("../model/User");
+const {
+  signUp,
+  logIn,
+  isLogin,
+  additional,
+  isDetailsFilled,
+  google,
+  emailCheck,
+  verifyResetOtp,
+  resetPassword,
+  verifyEmail,
+} = require("../controllers/authControllers");
 
+router.post("/signup", signUp);
 
-router.post("/signup", signUp)
+router.post("/login", logIn);
 
-router.post("/login", logIn)
+router.post("/next", additional);
 
-router.post("/next", additional)
+router.get("/isLogin", isLogin);
 
-router.get("/isLogin", isLogin)
-
-router.get("/isDetailsFilled", isDetailsFilled)
+router.get("/isDetailsFilled", isDetailsFilled);
 
 router.post("/google", google);
 
@@ -22,5 +32,6 @@ router.post("/otp", verifyResetOtp);
 
 router.post("/reset", resetPassword);
 
+router.post("/verify", verifyEmail);
 
 module.exports = router;
