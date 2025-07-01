@@ -38,7 +38,7 @@ const signUp = async (req, res) => {
     const savedUser = await newUser.save();
 
     // Generate a new token
-    const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: savedUser._id, }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -92,7 +92,7 @@ const logIn = async (req, res) => {
       return res.status(401).json({ message: "Incorrect Password" });
     }
 
-    const token = jwt.sign({ id: User._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: User._id, Role: User.Role }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 

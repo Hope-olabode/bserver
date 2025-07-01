@@ -3,9 +3,12 @@ const UserModel = require("../model/User");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require("fs");
+const cloudinary = require('../config/cloudinaryConfig'); // Import Cloudinary config
 
 const getProducts = async (req, res) => {
-  
+
   try {
     const products = await Product.find({});
     res.status(200).json(products);
@@ -15,9 +18,9 @@ const getProducts = async (req, res) => {
 };
 
 const getProductsWithoutDiscription = async (req, res) => {
-  
+
   try {
-    const products = await Product.find( {},{ discription: 0 } );
+    const products = await Product.find({}, { discription: 0 });
     res.status(200).json(products);
   } catch (error) {
     res.status(403).json({ message: "Forbidden: Invalid token" });
@@ -26,20 +29,55 @@ const getProductsWithoutDiscription = async (req, res) => {
 
 // Create a new product (Authenticated)
 const createProducts = async (req, res) => {
-  const token = req.cookies.token; // Assumes the token is stored in a cookie named "token"
+  const token = req.cookies.token;
 
-  
-  
+  console.log(token)
+
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using your secret key
-    const product = await Product.create(req.body);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded)
+    if (decoded.Role !== "Admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+
+    const imageUrls = {};
+
+    const imageUploadPromises = [];
+
+    for (let i = 1; i <= 4; i++) {
+      const file = req.files?.[`img${i}`]?.[0];
+      if (file) {
+        const filePath = path.resolve(file.path);
+
+        imageUploadPromises.push(
+          cloudinary.uploader.upload(filePath, { folder: "product_images" })
+            .then(uploadRes => {
+              imageUrls[`img${i}`] = uploadRes.secure_url;
+              fs.unlinkSync(file.path);
+            })
+        );
+      }
+    }
+
+    await Promise.all(imageUploadPromises); // wait for all uploads to complete
+
+    const product = await Product.create({
+      name: req.body.Name,
+      quantity: req.body.Quantity,
+      price: req.body.Price,
+      category: req.body.Category,
+      discription: req.body.Discription,
+      ...imageUrls, // Spread in { img1: "...", img2: "...", ... }
+    });
+
     res.status(200).json(product);
   } catch (error) {
-    res.status(403).json({ message: "Forbidden: Invalid token" });
+    console.error("Create Product Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
