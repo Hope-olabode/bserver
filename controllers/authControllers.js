@@ -240,7 +240,7 @@ const google = async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
       console.log(1);
-      res.status(200).json({ message: "User Login successfully" });
+      res.status(200).json({ message: "Login successful" });
     } else {
       const generatedPassword =
         Math.round().toString(36).slice(-8) +
@@ -264,7 +264,7 @@ const google = async (req, res) => {
         sameSite: process.env.NODE_ENV === "production" ? "Lax" : "strict", // Adjust if necessary (e.g., 'Lax' for cross-site cookies)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      res.status(200).json({ message: "User Login successfully" });
+      res.status(200).json({ message: "Login successful" });
     }
   } catch (error) {
     console.log(error);
@@ -302,6 +302,22 @@ const emailCheck = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+  // ,
+  // "name": "Tshirt (285 gsm)",
+  // "Quantity": "1000",
+  // "price": "22000",
+  // "discription":	"-",
+  // "category": "T-Shirts",
+	//  "img1" : "",
+  // "img2" : "",
+  // "img3" : "",
+  // "img4" : "",
+  // "createdAt" : "2025-07-17T10:16:33.325+00:00",
+  // "updatedAt" : "2025-07-17T010:16:33.325+00:00",
+  // "__v": 0
+  
 
 const verifyResetOtp = async (req, res) => {
   console.log(req.body);

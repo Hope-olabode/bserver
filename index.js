@@ -11,6 +11,7 @@ const authRoute = require("./routes/authRoute");
 const profilePicRoute = require("./routes/profilePicRoute");
 const paymentRoute = require("./routes/paymentRoute");
 const cartRoute = require("./routes/cartRoute")
+const usersRoute = require("./routes/usersRoute")
 const cookieParser = require("cookie-parser");
 
 const transporter = require("./config/nodemailer");
@@ -34,6 +35,8 @@ app.use("/auth", authRoute);
 app.use("/api/profilePic", profilePicRoute);
 app.use("/cart", cartRoute);
 app.use("/api", paymentRoute);
+/* app.use("/api/getUser", usersRoute); */
+app.use("/api/user", usersRoute);
 
 mongoose
   .connect(process.env.MONGO_URL)

@@ -16,14 +16,7 @@ const UserSchema = new mongoose.Schema({
   isAccountVerified: { type: Boolean, default: false},
   Profile_Image: { type: String, default: "" },
   likedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
-  cart: [
-    {
-      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-      name: String,
-      price: Number,
-      quantity: { type: Number, default: 1 },
-    },
-  ],
+  lastSeen: { type: Date,default: Date.now},
 })
 
 const UserModel = mongoose.model("users", UserSchema)
